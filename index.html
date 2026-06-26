@@ -245,7 +245,7 @@ body{
   cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;
 }
 .export-fields summary::-webkit-details-marker{ display:none; }
-.export-fields summary::before{ content:"▸"; color:var(--accent); font-size:.7rem; }
+.export-fields summary::before{ content:"▸"; color:var(--accent); font-size:1.25rem; }
 .export-fields[open] summary::before{ content:"▾"; }
 .field-count{ font-family:var(--mono); font-size:.7rem; color:#9a9580; font-weight:500; }
 .ef-quick{ display:flex; gap:8px; margin:8px 0 6px; }
@@ -384,7 +384,7 @@ body{
         </div>
         <div class="sc-body">
           <details class="export-fields" id="exportFieldsPanel">
-            <summary>ฟิลด์ที่จะ Export <span class="field-count" id="fieldCount"></span></summary>
+            <summary>เลือกฟิลด์ที่จะ Export <span class="field-count" id="fieldCount"></span></summary>
             <div class="ef-quick">
               <button type="button" class="ef-quick-btn" id="efSelectAll">เลือกทั้งหมด</button>
               <button type="button" class="ef-quick-btn" id="efSelectNone">ไม่เลือกเลย</button>

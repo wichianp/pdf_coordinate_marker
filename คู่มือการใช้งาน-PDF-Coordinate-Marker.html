@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มือการใช้งาน — PDF Coordinate Marker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10182b;
+  --ink-soft:#1a2540;
+  --ink-line:#27365c;
+  --paper:#f3f1ea;
+  --accent:#3aa6ff;
+  --accent-dim:#2a4f78;
+  --marker:#ff7a3d;
+  --good:#1f9d63;
+  --bad:#c0392b;
+  --sans:'Space Grotesk', system-ui, sans-serif;
+  --mono:'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+}
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  margin:0;
+  font-family:var(--sans);
+  background:var(--paper);
+  background-image: radial-gradient(circle, #e4e1d4 1px, transparent 1px);
+  background-size:22px 22px;
+  color:#241f10;
+  line-height:1.7;
+}
+
+header.hero{
+  background:var(--ink);
+  border-bottom:4px solid var(--accent);
+  padding:38px 20px 30px;
+  text-align:center;
+}
+header.hero .eyebrow{
+  font-family:var(--mono); font-size:.78rem; letter-spacing:.12em;
+  color:var(--accent); text-transform:uppercase;
+}
+header.hero h1{
+  font-family:var(--sans); font-weight:700; color:#fff;
+  font-size:1.9rem; margin:10px 0 6px;
+}
+header.hero p{
+  font-family:var(--mono); font-size:.86rem; color:#9fb4d6; margin:0;
+}
+
+main{ max-width:880px; margin:0 auto; padding:30px 18px 70px; }
+
+nav.toc{
+  background:#fff; border:1px solid #ddd9c9; border-radius:10px;
+  padding:18px 22px; margin-bottom:34px;
+}
+nav.toc h2{
+  font-family:var(--mono); font-size:.78rem; text-transform:uppercase;
+  letter-spacing:.1em; color:#8a8470; margin:0 0 12px;
+}
+nav.toc ol{ margin:0; padding-left:1.3em; columns:2; column-gap:28px; }
+nav.toc li{ margin-bottom:7px; font-size:.92rem; }
+nav.toc a{ color:var(--ink); text-decoration:none; border-bottom:1px dashed transparent; }
+nav.toc a:hover{ color:var(--accent-dim); border-bottom-color:var(--accent-dim); }
+
+section{
+  background:#fff;
+  border:1px solid #ddd9c9;
+  border-radius:10px;
+  padding:26px 28px 30px;
+  margin-bottom:22px;
+  scroll-margin-top:18px;
+}
+section h2{
+  font-family:var(--sans); font-weight:700; font-size:1.28rem; color:var(--ink);
+  margin:0 0 16px; padding-bottom:12px; border-bottom:1px solid #eae6d8;
+  display:flex; align-items:baseline; gap:10px;
+}
+section h2 .num{
+  font-family:var(--mono); font-size:.85rem; font-weight:600;
+  color:#fff; background:var(--accent-dim); border-radius:6px;
+  padding:2px 9px; flex-shrink:0;
+}
+section h3{
+  font-family:var(--sans); font-weight:700; font-size:1.02rem; color:var(--ink);
+  margin:22px 0 10px;
+}
+p{ margin:0 0 12px; }
+ul, ol{ margin:0 0 12px; padding-left:1.4em; }
+li{ margin-bottom:5px; }
+strong{ color:var(--ink); }
+
+code, .kbd{
+  font-family:var(--mono); font-size:.86em;
+  background:#f1efe5; color:#5a4c1f;
+  padding:1px 6px; border-radius:4px;
+}
+
+pre.codeblock{
+  font-family:var(--mono); font-size:.84rem; color:#cdebff;
+  background:var(--ink); border-radius:8px; padding:14px 18px;
+  overflow-x:auto; margin:14px 0;
+}
+
+table{
+  width:100%; border-collapse:collapse; margin:14px 0 18px;
+  font-size:.92rem;
+}
+table th, table td{
+  border:1px solid #eae6d8; padding:9px 12px; text-align:left;
+  vertical-align:top;
+}
+table th{
+  background:#faf8f1; font-family:var(--sans); font-weight:700;
+  font-size:.82rem; color:#5a5436;
+}
+table td code{ white-space:nowrap; }
+table tr:nth-child(even) td{ background:#fcfbf6; }
+
+.callout{
+  border-left:4px solid var(--accent);
+  background:rgba(58,166,255,.08);
+  padding:12px 16px; border-radius:0 8px 8px 0;
+  margin:14px 0; font-size:.93rem;
+}
+.callout.warn{ border-left-color:#d8a857; background:rgba(216,168,87,.1); }
+.callout strong{ color:var(--ink); }
+
+.badge-pill{
+  display:inline-block; font-family:var(--mono); font-size:.78rem; font-weight:600;
+  padding:2px 9px; border-radius:20px; border:1px solid;
+}
+.badge-good{ color:var(--good); border-color:var(--good); background:rgba(31,157,99,.08); }
+.badge-bad{ color:#b6791d; border-color:#b6791d; background:rgba(182,121,29,.08); }
+
+.toolbar-mock{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--ink); border:1px solid var(--ink-line); border-radius:30px;
+  padding:6px 14px; font-family:var(--mono); font-size:.84rem; color:#fff;
+  margin:10px 0;
+}
+.toolbar-mock .accent{ color:var(--accent); font-weight:700; }
+
+.marker-dot-demo{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; height:18px; border-radius:50%; background:var(--marker);
+  border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.4);
+  font-family:var(--mono); font-size:9px; color:#1a0a00; font-weight:700;
+  vertical-align:middle;
+}
+
+footer{
+  text-align:center; font-family:var(--mono); font-size:.78rem;
+  color:#8a8470; padding:10px 0 40px;
+}
+
+@media (max-width:600px){
+  nav.toc ol{ columns:1; }
+  section{ padding:20px 18px 24px; }
+  header.hero h1{ font-size:1.45rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">User Manual</div>
+  <h1>คู่มือการใช้งาน PDF Coordinate Marker</h1>
+  <p>เครื่องมือปักหมุดพิกัด X, Y บนเอกสาร PDF — ทำงานในเบราว์เซอร์ทั้งหมด ไม่มีเซิร์ฟเวอร์ ไม่อัปโหลดไฟล์ของคุณไปที่ใดเลย</p>
+</header>
+
+<main>
+
+  <nav class="toc">
+    <h2>สารบัญ</h2>
+    <ol>
+      <li><a href="#sec-overview">ภาพรวมและวิธีเปิดใช้งาน</a></li>
+      <li><a href="#sec-upload">อัปโหลด PDF</a></li>
+      <li><a href="#sec-markers">การปักหมุด (Markers)</a></li>
+      <li><a href="#sec-origin">การตั้งค่าจุดอ้างอิง (0,0)</a></li>
+      <li><a href="#sec-zoom">การซูม (Zoom)</a></li>
+      <li><a href="#sec-sidebar">รายการหมุดและข้อมูลหน้ากระดาษ</a></li>
+      <li><a href="#sec-jsonoutput">JSON Output: เลือกฟิลด์ / Copy / Export</a></li>
+      <li><a href="#sec-import">Import JSON</a></li>
+      <li><a href="#sec-jsonfields">อ้างอิงโครงสร้างไฟล์ JSON</a></li>
+      <li><a href="#sec-tips">เคล็ดลับและข้อสังเกต</a></li>
+      <li><a href="#sec-troubleshoot">แก้ปัญหาที่พบบ่อย</a></li>
+    </ol>
+  </nav>
+
+  <section id="sec-overview">
+    <h2><span class="num">1</span> ภาพรวมและวิธีเปิดใช้งาน</h2>
+    <p>เครื่องมือนี้ใช้สำหรับ <strong>หาตำแหน่ง X, Y ที่แม่นยำบนเอกสาร PDF</strong> เช่น ตำแหน่งลายเซ็น ตำแหน่งตราประทับ ตำแหน่ง field ที่จะวางข้อมูล แล้วส่งออกเป็น JSON ไปใช้กับโปรแกรม/ระบบอื่นต่อได้</p>
+    <p><strong>วิธีเปิด:</strong> ดับเบิลคลิกไฟล์ <code>index.html</code> หรือลากเข้าเบราว์เซอร์ (Chrome / Edge / Firefox รุ่นใหม่)</p>
+    <div class="callout">
+      ครั้งแรกที่เปิดต้องมีอินเทอร์เน็ตเพื่อโหลดฟอนต์ / ไอคอน / PDF.js จาก CDN แต่หลังจากนั้นไฟล์ PDF ที่อัปโหลดและหมุดที่ปักไว้จะประมวลผล<strong>ในเบราว์เซอร์ของคุณเองทั้งหมด</strong> ไม่ถูกส่งไปยังเซิร์ฟเวอร์ใด ๆ
+    </div>
+  </section>
+
+  <section id="sec-upload">
+    <h2><span class="num">2</span> อัปโหลด PDF</h2>
+    <p>ทำได้ 2 วิธี:</p>
+    <ul>
+      <li>กดปุ่ม <strong>Upload PDF</strong> ที่แถบเครื่องมือบนสุด แล้วเลือกไฟล์</li>
+      <li><strong>ลากไฟล์ .pdf มาวาง</strong> ในพื้นที่แสดงผล (พื้นหลังสีเข้มที่มีข้อความ "ลากไฟล์ PDF มาวางที่นี่")</li>
+    </ul>
+    <p>รองรับ <strong>PDF หลายหน้า</strong> — ทุกหน้าแสดงเรียงต่อกันให้เลื่อนดูได้ในที่เดียว และแต่ละหน้าจะมีป้ายข้อมูลแสดงเหนือหน้านั้น ๆ:</p>
+    <table>
+      <thead><tr><th>ป้าย</th><th>ความหมาย</th></tr></thead>
+      <tbody>
+        <tr><td><code>หน้า X/Y</code></td><td>เลขหน้าปัจจุบัน / จำนวนหน้าทั้งหมด</td></tr>
+        <tr><td>ขนาด pt และ mm</td><td>ขนาดจริงของหน้านั้น เช่น <code>595×842 pt (210×297 mm)</code></td></tr>
+        <tr><td><code>▯ แนวตั้ง</code> / <code>⬓ แนวนอน</code></td><td>บอกแนวของหน้านั้น (portrait / landscape)</td></tr>
+        <tr><td><span class="badge-pill badge-good">A4 ✓</span> / <span class="badge-pill badge-bad">ไม่ใช่ A4</span></td><td>บอกว่าหน้านั้นมีขนาดตรงกับ A4 มาตรฐานหรือไม่ (คลาดเคลื่อนได้ ±2pt)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      ทุกหน้าแสดงตามสัดส่วนขนาดจริงเทียบกัน — ถ้าเอกสารมีหน้าขนาดเล็กกว่าหรือหน้าแนวนอนปนอยู่ หน้าเหล่านั้นจะแสดงเล็ก/กว้างกว่าจริงตามสัดส่วน ไม่ถูกบีบให้เท่ากันหมด
+    </div>
+    <div class="callout warn">
+      อัปโหลดไฟล์ใหม่ทับ จะ<strong>ล้างหมุดเดิมทั้งหมด</strong>และเริ่มต้นใหม่โดยอัตโนมัติ
+    </div>
+  </section>
+
+  <section id="sec-markers">
+    <h2><span class="num">3</span> การปักหมุด (Markers)</h2>
+    <table>
+      <thead><tr><th>การกระทำ</th><th>วิธีทำ</th></tr></thead>
+      <tbody>
+        <tr><td><strong>ปักหมุดใหม่</strong></td><td>คลิกที่ตำแหน่งบนหน้า PDF (เคอร์เซอร์จะเป็นรูป + เมื่อชี้บนหน้า)</td></tr>
+        <tr><td><strong>ขยับหมุด</strong></td><td>กดเมาส์ค้างที่หมุดแล้วลากไปตำแหน่งใหม่ ปล่อยเมาส์เพื่อยืนยัน</td></tr>
+        <tr><td><strong>แก้ป้ายชื่อหมุด</strong></td><td>พิมพ์ในช่อง "ป้ายชื่อ" ของแถวนั้นในตาราง sidebar</td></tr>
+        <tr><td><strong>ลบหมุด 1 จุด</strong></td><td>กดปุ่ม ✕ ท้ายแถวของหมุดนั้นในตาราง</td></tr>
+        <tr><td><strong>ลบหมุดทั้งหมด</strong></td><td>กดปุ่ม <strong>Clear Markers</strong> ที่แถบเครื่องมือบนสุด (มีกล่องยืนยันก่อนลบจริง)</td></tr>
+      </tbody>
+    </table>
+    <p><span class="marker-dot-demo">3</span>&nbsp; หมุดแต่ละจุดแสดงเป็นจุดสีส้มพร้อมเลขลำดับ และมีเส้น crosshair บอกตำแหน่งจุดศูนย์กลางที่แม่นยำ</p>
+  </section>
+
+  <section id="sec-origin">
+    <h2><span class="num">4</span> การตั้งค่าจุดอ้างอิง (0,0)</h2>
+    <p>ปุ่ม <strong>"(0,0):"</strong> ที่แถบเครื่องมือบนสุด ใช้กำหนดว่าจุดเริ่มต้น (0,0) ของแต่ละหน้าอยู่ที่มุมไหน เลือกได้ 2 แบบ:</p>
+    <div class="toolbar-mock">(0,0): <span class="accent">มุมบนซ้าย</span> &nbsp;|&nbsp; มุมล่างซ้าย</div>
+    <ul>
+      <li><strong>มุมบนซ้าย</strong> (ค่าเริ่มต้น) — แกน Y วัดจากบนลงล่าง (ตามแนวจอภาพทั่วไป)</li>
+      <li><strong>มุมล่างซ้าย</strong> — แกน Y วัดจากล่างขึ้นบน (ตามระบบพิกัดมาตรฐานของไฟล์ PDF)</li>
+    </ul>
+    <p>เมื่อสลับปุ่มนี้:</p>
+    <ul>
+      <li>ค่า <strong>Y ในตารางหมุดและใน JSON จะคำนวณใหม่ทันที</strong> ตามมุมที่เลือก</li>
+      <li>จะมีป้าย <code>(0,0)</code> พร้อมลูกศรแกน <code>X→</code> และ <code>↓Y</code> (ถ้าเลือกมุมบนซ้าย) หรือ <code>↑Y</code> (ถ้าเลือกมุมล่างซ้าย) ปรากฏอยู่ที่มุมจริงของทุกหน้า ให้เห็นภาพชัดว่าแกนวิ่งไปทางไหน</li>
+    </ul>
+    <div class="callout">
+      ตำแหน่งจริงของหมุด (ในเชิงเปอร์เซ็นต์บนหน้า) <strong>ไม่เปลี่ยนเลย</strong> เปลี่ยนแค่ตัวเลข Y ที่แสดง/ส่งออกเท่านั้น สลับกลับไปกลับมาได้โดยไม่กระทบหมุดที่ปักไว้
+    </div>
+  </section>
+
+  <section id="sec-zoom">
+    <h2><span class="num">5</span> การซูม (Zoom)</h2>
+    <p>แถบควบคุมลอยอยู่มุมขวาบนของพื้นที่แสดง PDF (ติดอยู่กับที่แม้เลื่อนสกอลล์ลง):</p>
+    <div class="toolbar-mock">− &nbsp; 100% &nbsp; + &nbsp;|&nbsp; <span class="accent">มุมมองปกติ</span></div>
+    <table>
+      <thead><tr><th>ปุ่ม</th><th>หน้าที่</th></tr></thead>
+      <tbody>
+        <tr><td><code>−</code> (Zoom Out)</td><td>ลดขนาดลงทีละ 25%</td></tr>
+        <tr><td><code>+</code> (Zoom In)</td><td>เพิ่มขนาดขึ้นทีละ 25% (ช่วงทั้งหมด 40%–500%)</td></tr>
+        <tr><td><strong>มุมมองปกติ</strong></td><td>รีเซ็ตกลับไป 100% ทันที (= ขนาดจริงเทียบสัดส่วนกันทุกหน้า)</td></tr>
+      </tbody>
+    </table>
+    <p><strong>ทำไมต้องซูม:</strong> เมื่อซูมเข้า พื้นที่หน้าจอต่อ 1 จุดบน PDF จะใหญ่ขึ้น ทำให้คลิก/ลากหมุดได้แม่นยำขึ้นมาก โดยเฉพาะเอกสารที่มีรายละเอียดเล็ก ๆ</p>
+    <div class="callout">
+      เมื่อหน้ากระดาษกว้างเกินกรอบที่มองเห็น (เช่นซูมเข้ามาก ๆ) ระบบจะ<strong>เลื่อน scroll แนวนอนไปกึ่งกลางให้อัตโนมัติ</strong> ไม่ต้องเลื่อนหาเอง
+    </div>
+    <p>ตำแหน่งหมุดที่ปักไว้แล้วไม่ได้รับผลกระทบจากการซูมเลย เพราะระบบเก็บพิกัดเป็นเปอร์เซ็นต์เทียบกับหน้าอยู่แล้ว</p>
+  </section>
+
+  <section id="sec-sidebar">
+    <h2><span class="num">6</span> รายการหมุดและข้อมูลหน้ากระดาษ (Sidebar)</h2>
+    <h3>การ์ด "หมุดพิกัด (Markers)"</h3>
+    <p>แสดงจำนวนหมุดทั้งหมด และตารางที่มีคอลัมน์: ลำดับ, หน้า, X (pt), Y (pt), ป้ายชื่อ (แก้ไขได้), ปุ่มลบ — ค่า X/Y ที่แสดงจะอัปเดตทันทีตามจุดอ้างอิง (0,0) ที่เลือกไว้</p>
+    <h3>การ์ด "ขนาดอ้างอิง A4"</h3>
+    <p>แสดงค่ามาตรฐาน A4 (595.28 × 841.89 pt หรือ 210 × 297 mm) เกณฑ์การตรวจสอบ (±2pt) และจำนวนหน้าในไฟล์ปัจจุบันที่ตรงกับ A4</p>
+  </section>
+
+  <section id="sec-jsonoutput">
+    <h2><span class="num">7</span> JSON Output: เลือกฟิลด์ / Copy / Export</h2>
+
+    <h3>เลือกฟิลด์ที่จะ Export</h3>
+    <p>กดหัวข้อ <strong>"ฟิลด์ที่จะ Export ▾"</strong> เพื่อเปิดแผงเลือกฟิลด์ ภายในมี:</p>
+    <ul>
+      <li><strong>Checkbox ของแต่ละฟิลด์</strong> — ติ๊ก/ปลดติ๊กได้อิสระ</li>
+      <li>ปุ่ม <strong>"เลือกทั้งหมด"</strong> / <strong>"ไม่เลือกเลย"</strong> — กดทีเดียวจัดการได้ครบ</li>
+      <li>Checkbox แยก <strong>"รวมข้อมูลขนาดหน้า/A4 (pages, a4Reference)"</strong> — ถ้าไม่ต้องการ metadata ส่วนนี้ปิดได้</li>
+      <li>ตัวเลขข้างหัวข้อ (เช่น <code>(5/11)</code>) บอกจำนวนฟิลด์ที่เลือกอยู่ในขณะนั้น</li>
+    </ul>
+    <p><strong>ค่าเริ่มต้นที่ติ๊กไว้ให้:</strong> <code>order</code>, <code>page</code>, <code>label</code>, <code>x</code>, <code>y</code><br>
+    <strong>ฟิลด์เสริม (ปลดติ๊กไว้ก่อน):</strong> <code>origin</code>, <code>xPercent</code>, <code>yPercent</code>, <code>xPt</code>, <code>yPtFromTop</code>, <code>yPtFromBottom</code></p>
+    <p>ปรับ checkbox เมื่อไหร่ ช่อง <strong>JSON preview ด้านล่างจะอัปเดตให้ดูทันที</strong></p>
+
+    <h3>Copy JSON</h3>
+    <p>กดปุ่ม <strong>Copy JSON</strong> (มีทั้งที่แถบเครื่องมือบนสุด และในการ์ด JSON Output) เพื่อคัดลอกผลลัพธ์ JSON ทั้งหมดเข้า clipboard ทันที พร้อมแจ้งเตือนเมื่อสำเร็จ</p>
+
+    <h3>Export JSON</h3>
+    <p>กดปุ่ม <strong>Export JSON</strong> เพื่อดาวน์โหลดไฟล์ <code>.json</code> — ชื่อไฟล์จะตั้งตามชื่อ PDF อัตโนมัติ เช่น <code>เอกสาร-markers.json</code></p>
+    <div class="callout warn">
+      ถ้าไม่ได้เลือกฟิลด์ไว้เลยสักรายการ ระบบจะเตือนให้เลือกอย่างน้อย 1 รายการก่อนจึง Copy/Export ได้
+    </div>
+  </section>
+
+  <section id="sec-import">
+    <h2><span class="num">8</span> Import JSON</h2>
+    <p>ใช้สำหรับนำหมุดที่เคย Export ไว้ (หรือไฟล์ JSON ที่สร้างตามโครงสร้างเดียวกัน) กลับเข้ามาวางบน PDF เดิมอีกครั้ง</p>
+    <p><strong>ขั้นตอน:</strong></p>
+    <ol>
+      <li>อัปโหลด PDF ที่ตรงกับไฟล์ JSON นั้นไว้ก่อน (ต้องมี PDF เปิดอยู่ก่อนถึงจะ Import ได้)</li>
+      <li>กดปุ่ม <strong>Import JSON</strong> แล้วเลือกไฟล์ <code>.json</code></li>
+      <li>หมุดทั้งหมดในไฟล์จะถูกวางกลับเข้าไปบนหน้าที่ตรงกัน พร้อมป้ายชื่อเดิม</li>
+    </ol>
+    <p>ระบบรองรับการอ่านค่าพิกัดได้หลายรูปแบบ (<code>x</code>/<code>y</code>, <code>xPercent</code>/<code>yPercent</code>, <code>xPt</code>, <code>yPtFromTop</code>, <code>yPtFromBottom</code>) — แม้ไฟล์ที่ Import มาจะถูกเลือก Export เฉพาะบางฟิลด์ไว้ก็ยังนำเข้าได้ตามปกติ</p>
+    <div class="callout">
+      ถ้าไฟล์มีฟิลด์ <code>originMode</code> ระบบจะ<strong>สลับปุ่มจุดอ้างอิง (0,0) ให้ตรงกับไฟล์นั้นโดยอัตโนมัติ</strong>
+    </div>
+  </section>
+
+  <section id="sec-jsonfields">
+    <h2><span class="num">9</span> อ้างอิงโครงสร้างไฟล์ JSON</h2>
+
+    <h3>ฟิลด์ระดับเอกสาร (เสมอ)</h3>
+    <table>
+      <thead><tr><th>ฟิลด์</th><th>ความหมาย</th></tr></thead>
+      <tbody>
+        <tr><td><code>fileName</code></td><td>ชื่อไฟล์ PDF ที่เปิดอยู่</td></tr>
+        <tr><td><code>pageCount</code></td><td>จำนวนหน้าทั้งหมด</td></tr>
+        <tr><td><code>exportedAt</code></td><td>วันเวลาที่ Export (ISO timestamp)</td></tr>
+        <tr><td><code>originMode</code></td><td>จุดอ้างอิงที่เลือกไว้ขณะ Export (<code>top-left</code> หรือ <code>bottom-left</code>)</td></tr>
+        <tr><td><code>originNote</code></td><td>คำอธิบายภาษาไทยของ originMode</td></tr>
+      </tbody>
+    </table>
+
+    <h3>ฟิลด์ระดับเอกสาร (เปิด/ปิดได้ผ่าน checkbox "รวมข้อมูลขนาดหน้า/A4")</h3>
+    <table>
+      <thead><tr><th>ฟิลด์</th><th>ความหมาย</th></tr></thead>
+      <tbody>
+        <tr><td><code>a4Reference</code></td><td>ขนาดมาตรฐาน A4 อ้างอิง (pt/mm)</td></tr>
+        <tr><td><code>pages[]</code></td><td>ขนาดจริงของแต่ละหน้า (<code>page</code>, <code>widthPt</code>, <code>heightPt</code>, <code>widthMm</code>, <code>heightMm</code>, <code>isA4</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>ฟิลด์ของแต่ละหมุด (<code>markers[]</code>) — เลือกรวม/ไม่รวมได้ทีละฟิลด์</h3>
+    <table>
+      <thead><tr><th>ฟิลด์</th><th>ความหมาย</th></tr></thead>
+      <tbody>
+        <tr><td><code>order</code></td><td>ลำดับของหมุด (เริ่มที่ 1)</td></tr>
+        <tr><td><code>page</code></td><td>หมายเลขหน้าที่หมุดนั้นอยู่</td></tr>
+        <tr><td><code>label</code></td><td>ป้ายชื่อหมุด</td></tr>
+        <tr><td><code>origin</code></td><td>จุดอ้างอิงที่ใช้คำนวณ <code>y</code> ของหมุดนี้</td></tr>
+        <tr><td><code>x</code></td><td>ค่า X เป็น pt วัดจากซ้ายของหน้า</td></tr>
+        <tr><td><code>y</code></td><td>ค่า Y เป็น pt <strong>ตามจุดอ้างอิงที่ตั้งไว้</strong> (บนซ้ายหรือล่างซ้าย)</td></tr>
+        <tr><td><code>xPercent</code> / <code>yPercent</code></td><td>ตำแหน่งเป็นเปอร์เซ็นต์ของความกว้าง/สูงหน้า (0–100) ไม่ขึ้นกับขนาดจอ</td></tr>
+        <tr><td><code>xPt</code></td><td>ค่า X เป็น pt (เหมือน <code>x</code> เสมอ เพราะแกน X วัดจากซ้ายทั้งสองกรณี)</td></tr>
+        <tr><td><code>yPtFromTop</code></td><td>ค่า Y เป็น pt วัดจากบนเสมอ ไม่ว่าจะตั้งจุดอ้างอิงไว้แบบไหน</td></tr>
+        <tr><td><code>yPtFromBottom</code></td><td>ค่า Y เป็น pt วัดจากล่างเสมอ (ระบบพิกัดมาตรฐานของไฟล์ PDF)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>ตัวอย่าง JSON (เลือกฟิลด์ default)</h3>
+    <pre class="codeblock">{
+  "fileName": "เอกสาร.pdf",
+  "pageCount": 2,
+  "exportedAt": "2026-06-27T03:40:00.000Z",
+  "originMode": "top-left",
+  "originNote": "(0,0) อยู่ที่มุมบนซ้ายของแต่ละหน้า — ...",
+  "a4Reference": { "widthPt": 595.28, "heightPt": 841.89, "widthMm": 210, "heightMm": 297 },
+  "pages": [
+    { "page": 1, "widthPt": 595.28, "heightPt": 841.89, "widthMm": 210, "heightMm": 297, "isA4": true }
+  ],
+  "markers": [
+    { "order": 1, "page": 1, "label": "ลายเซ็น", "x": 120.5, "y": 700.25 }
+  ]
+}</pre>
+  </section>
+
+  <section id="sec-tips">
+    <h2><span class="num">10</span> เคล็ดลับและข้อสังเกต</h2>
+    <ul>
+      <li>ทุกอย่างประมวลผลในเบราว์เซอร์ของคุณเอง ไม่มีการส่งไฟล์ PDF หรือหมุดที่ปักไว้ขึ้นเซิร์ฟเวอร์ใด ๆ</li>
+      <li>อัปโหลด PDF ใหม่ทับ จะล้างหมุดเดิมทั้งหมดทันที — ถ้ายังไม่ได้ Export ควร Export ก่อนเปลี่ยนไฟล์</li>
+      <li>เอกสารที่มีหน้าหลายขนาด/หลายแนวปนกัน (เช่น A4 ปนกับหน้าแนวนอน) แสดงผลได้ถูกต้องตามสัดส่วนจริง ไม่ต้องตั้งค่าอะไรเพิ่ม</li>
+      <li>ใช้ปุ่ม "มุมมองปกติ" เพื่อกลับไปดูภาพรวมขนาดจริงทุกครั้งหลังซูมเข้าไปดูรายละเอียด</li>
+      <li>ค่าพิกัดที่ Export ออกมาจะ<strong>ปัดทศนิยม 2 ตำแหน่ง</strong> เสมอ เพื่อความกระชับและอ่านง่าย</li>
+    </ul>
+  </section>
+
+  <section id="sec-troubleshoot">
+    <h2><span class="num">11</span> แก้ปัญหาที่พบบ่อย</h2>
+    <table>
+      <thead><tr><th>ปัญหา</th><th>วิธีแก้</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>เปิดไฟล์แล้ว PDF ไม่ขึ้น / มีข้อความ "ไม่สามารถเปิดไฟล์ PDF นี้ได้"</td>
+          <td>ตรวจว่าไฟล์เป็น <code>.pdf</code> จริงและไม่เสียหาย และเครื่องมีอินเทอร์เน็ตตอนเปิดหน้าเว็บครั้งแรก (ต้องโหลด PDF.js จาก CDN)</td>
+        </tr>
+        <tr>
+          <td>กด "Copy JSON" แล้วไม่มีอะไรเกิดขึ้น</td>
+          <td>เบราว์เซอร์บางตัว/บางการตั้งค่าบล็อกการเข้าถึง clipboard — ให้เลือกข้อความในกล่อง JSON Output เองแล้วกด Ctrl+C (Cmd+C บน Mac)</td>
+        </tr>
+        <tr>
+          <td>ปักหมุดแล้วตำแหน่งไม่ตรงจุดที่ต้องการเป๊ะ ๆ</td>
+          <td>ลองกด Zoom In ก่อนปัก/ลากหมุด เพื่อความแม่นยำที่สูงขึ้น</td>
+        </tr>
+        <tr>
+          <td>ค่า Y ที่ได้ไม่ตรงกับระบบปลายทางที่จะนำ JSON ไปใช้</td>
+          <td>ตรวจปุ่ม "(0,0)" ว่าตั้งเป็นมุมเดียวกับที่ระบบปลายทางใช้หรือยัง (PDF มาตรฐานมักใช้มุมล่างซ้าย)</td>
+        </tr>
+        <tr>
+          <td>กด Import JSON แล้วไม่มีหมุดปรากฏ</td>
+          <td>ต้องอัปโหลด PDF ก่อนเสมอ และไฟล์ JSON ต้องมีอย่างน้อยฟิลด์พิกัด (<code>x</code>/<code>y</code> หรือ <code>xPercent</code>/<code>yPercent</code> หรือ <code>xPt</code>/<code>yPtFromTop</code>/<code>yPtFromBottom</code>) จึงจะวางหมุดได้</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<footer>คู่มือนี้อ้างอิงจากเครื่องมือ PDF Coordinate Marker (index.html) — สร้างด้วย PDF.js + Bootstrap 5</footer>
+
+</body>
+</html>

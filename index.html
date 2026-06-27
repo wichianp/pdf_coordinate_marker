@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF Coordinate Marker — ปักหมุดพิกัด X,Y บน PDF</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+:root{
+  --ink:#10182b;
+  --ink-soft:#1a2540;
+  --ink-line:#27365c;
+  --paper:#f3f1ea;
+  --paper-grid:#e4e1d4;
+  --accent:#3aa6ff;
+  --accent-dim:#2a4f78;
+  --marker:#ff7a3d49;
+  --marker-line:rgba(255, 122, 61, 0.986);
+  --good:#34c785;
+  --bad:#ff6b6b;
+  --sans:'Space Grotesk', system-ui, sans-serif;
+  --mono:'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+}
+
+html,body{ height:100%; }
+body{
+  font-family:var(--sans);
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(circle, var(--paper-grid) 1px, transparent 1px);
+  background-size:22px 22px;
+  color:var(--ink);
+}
+
+.app-header{
+  background:var(--ink);
+  border-bottom:1px solid var(--ink-line);
+  position:sticky; top:0; z-index:1000;
+}
+.app-header .brand-title{
+  font-family:var(--sans);
+  font-weight:700;
+  font-size:1.05rem;
+  color:#fff;
+  letter-spacing:.2px;
+}
+.app-header .brand-sub{
+  font-family:var(--mono);
+  font-size:.72rem;
+  color:#8da3c9;
+}
+.app-header .btn{
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:.84rem;
+}
+.btn-accent{
+  background:var(--accent);
+  border:1px solid var(--accent);
+  color:#06141f;
+}
+.btn-accent:hover{ background:#5cb6ff; color:#06141f; }
+.btn-ghost{
+  background:transparent;
+  border:1px solid var(--ink-line);
+  color:#cfe0f7;
+}
+.btn-ghost:hover{ background:var(--ink-soft); color:#fff; border-color:var(--accent); }
+.btn-danger-ghost{
+  background:transparent;
+  border:1px solid #5c2a2a;
+  color:#ff9c9c;
+}
+.btn-danger-ghost:hover{ background:#341010; color:#ffb3b3; border-color:var(--bad); }
+
+.origin-control{ padding:2px 10px; border-left:1px solid var(--ink-line); border-right:1px solid var(--ink-line); }
+.origin-label{ font-family:var(--mono); font-size:1rem; color:#9fb4d6; align-self:center; white-space:nowrap; }
+.origin-btn{ font-family:var(--sans); font-weight:600; font-size:.78rem; }
+.origin-btn.active{ background:var(--accent); color:#06141f; border-color:var(--accent); }
+.origin-btn.active:hover{ background:#5cb6ff; color:#06141f; }
+
+/* ---------- Viewer (drafting table) ---------- */
+.viewer-panel{
+  background:
+    linear-gradient(var(--ink), var(--ink)) ,
+    repeating-linear-gradient(0deg, var(--ink-line) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, var(--ink-line) 0 1px, transparent 1px 28px);
+  background-blend-mode: normal, screen, screen;
+  border-radius:10px;
+  min-height:80vh;
+  max-height:calc(100vh - 110px);
+  overflow:auto;
+  position:relative;
+  padding:28px 14px;
+}
+.viewer-panel.drag-active{
+  outline:2px dashed var(--accent);
+  outline-offset:-6px;
+}
+.drop-hint{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center; color:#9fb4d6;
+  padding:24px;
+}
+.drop-hint i{ font-size:3.4rem; color:var(--accent); }
+.drop-hint .hint-title{ font-family:var(--sans); font-weight:700; color:#fff; font-size:1.05rem; margin-top:10px; }
+.drop-hint .hint-sub{ font-family:var(--mono); font-size:.8rem; color:#7f97c0; margin-top:4px; }
+
+.zoom-toolbar-wrap{
+  position:sticky; top:0; z-index:30;
+  display:flex; justify-content:flex-end;
+  pointer-events:none;
+  margin-bottom:14px;
+}
+.zoom-toolbar{
+  pointer-events:auto;
+  display:flex; align-items:center; gap:4px;
+  background:rgba(16,24,43,.92);
+  border:1px solid var(--ink-line);
+  border-radius:30px;
+  padding:5px 6px;
+  box-shadow:0 6px 16px rgba(0,0,0,.4);
+  backdrop-filter:blur(3px);
+}
+.zoom-btn{
+  border:none; background:transparent; color:#cfe0f7;
+  font-family:var(--sans); font-weight:600; font-size:.78rem;
+  width:28px; height:28px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.zoom-btn:hover{ background:var(--ink-soft); color:#fff; }
+.zoom-btn:disabled{ opacity:.35; cursor:not-allowed; }
+.zoom-btn:disabled:hover{ background:transparent; color:#cfe0f7; }
+.zoom-pct{
+  font-family:var(--mono); font-size:.74rem; font-weight:600; color:#fff;
+  min-width:42px; text-align:center;
+}
+.zoom-divider{ width:1px; height:18px; background:var(--ink-line); margin:0 2px; }
+.zoom-btn.zoom-reset{
+  width:auto; border-radius:20px; padding:0 12px; gap:5px;
+}
+.zoom-btn.zoom-reset:hover{ color:var(--accent); }
+
+#pageList{ display:flex; flex-direction:column; align-items:center; gap:34px; }
+
+.page-block{ max-width:100%; }
+.page-label{
+  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:.74rem; color:#9fb4d6;
+  margin-bottom:6px; padding:0 2px;
+}
+.page-label .page-num{ color:#fff; font-weight:600; letter-spacing:.3px; }
+.a4-badge{
+  font-family:var(--mono); font-size:.68rem; font-weight:600;
+  padding:1px 7px; border-radius:20px; border:1px solid;
+}
+.badge-a4-yes{ color:var(--good); border-color:var(--good); background:rgba(52,199,133,.1); }
+.badge-a4-no{ color:#d8a857; border-color:#d8a857; background:rgba(216,168,87,.1); }
+.orient-badge{
+  font-family:var(--mono); font-size:.68rem; font-weight:600;
+  padding:1px 7px; border-radius:20px;
+  border:1px solid var(--accent-dim); color:#bcd6f5; background:rgba(58,166,255,.08);
+}
+
+.canvas-wrap{
+  position:relative;
+  display:inline-block;
+  line-height:0;
+  background:#fff;
+  box-shadow:0 14px 34px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.04);
+  border-radius:2px;
+}
+.canvas-wrap canvas{ display:block; height:auto; border-radius:2px; }
+
+.marker-layer{
+  position:absolute; inset:0;
+  cursor:crosshair;
+}
+
+.origin-badge{
+  position:absolute; pointer-events:none; z-index:4;
+  font-family:var(--mono); font-size:9.5px; font-weight:600; color:#fff;
+  background:rgba(16,24,43,.82); border:1px solid var(--accent-dim);
+  padding:3px 7px; border-radius:5px; line-height:1.35;
+  display:flex; flex-direction:column; gap:1px;
+}
+.origin-badge.top-left{ top:6px; left:6px; }
+.origin-badge.bottom-left{ bottom:6px; left:6px; }
+.origin-badge .origin-coord{ color:var(--accent); }
+
+.marker-dot{
+  position:absolute;
+  width:20px; height:20px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:var(--marker);
+  border:1px solid #fc0202;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:10px; font-weight:600; color:#1a0a00;
+  cursor:grab; user-select:none; touch-action:none; z-index:5;
+}
+.marker-dot::before, .marker-dot::after{
+  content:""; position:absolute; background:var(--marker-line); z-index:-1;
+}
+.marker-dot::before{ width:1px; height:30px; left:50%; top:50%; transform:translate(-50%,-50%); }
+.marker-dot::after{ width:30px; height:1px; left:50%; top:50%; transform:translate(-50%,-50%); }
+.marker-dot.dragging{ cursor:grabbing; filter:brightness(1.15); }
+.marker-dot.selected{ box-shadow:0 0 0 3px rgba(255,122,61,.5), 0 2px 6px rgba(0,0,0,.5); }
+
+/* ---------- Sidebar ---------- */
+.side-card{
+  background:#fff;
+  border:1px solid #ddd9c9;
+  border-radius:10px;
+  margin-bottom:16px;
+  overflow:hidden;
+}
+.side-card .sc-header{
+  display:flex; align-items:center; justify-content:between; gap:8px;
+  padding:10px 14px;
+  background:var(--ink);
+  color:#fff;
+}
+.side-card .sc-header h6{
+  margin:0; font-family:var(--sans); font-weight:700; font-size:.84rem; letter-spacing:.2px;
+  flex:1;
+}
+.sc-header .badge-count{
+  background:var(--accent); color:#06141f; font-family:var(--mono);
+  font-size:.72rem; font-weight:700; border-radius:20px; padding:2px 9px;
+}
+.side-card .sc-body{ padding:12px 14px; }
+
+.marker-table{ width:100%; font-family:var(--mono); font-size:.78rem; }
+.marker-table th{
+  text-align:left; font-weight:600; color:#8a8470; font-size:.68rem;
+  text-transform:uppercase; letter-spacing:.06em; padding-bottom:6px;
+  border-bottom:1px solid #eae6d8;
+}
+.marker-table td{ padding:6px 4px; border-bottom:1px solid #f1efe5; vertical-align:middle; }
+.marker-table .lbl-input{
+  width:100%; border:1px solid transparent; background:transparent;
+  font-family:var(--sans); font-size:.78rem; padding:3px 4px; border-radius:4px;
+}
+.marker-table .lbl-input:focus{ outline:none; border-color:var(--accent); background:#f5faff; }
+.marker-table .del-btn{
+  border:none; background:transparent; color:#c2554b; font-size:.95rem; line-height:1;
+}
+.marker-table .del-btn:hover{ color:var(--bad); }
+.marker-list-scroll{ max-height:320px; overflow-y:auto; }
+.empty-note{ color:#9a9580; font-size:.82rem; font-family:var(--sans); padding:6px 2px; }
+.origin-caption{ font-family:var(--mono); font-size:.7rem; color:#7d7a68; margin-bottom:8px; }
+
+.a4-ref{ font-family:var(--mono); font-size:.78rem; color:#3c3826; line-height:1.7; }
+.a4-ref b{ color:var(--ink); }
+.a4-ref .match-line{ margin-top:8px; padding-top:8px; border-top:1px dashed #e0dccb; }
+
+.json-pre{
+  background:var(--ink); color:#cdebff;
+  font-family:var(--mono); font-size:.72rem; line-height:1.55;
+  padding:12px; border-radius:8px;
+  max-height:280px; overflow:auto;
+  margin:0; white-space:pre;
+}
+.json-actions .btn{ font-family:var(--sans); font-size:.78rem; font-weight:600; }
+
+.export-fields{
+  border:1px solid #eae6d8; border-radius:8px; padding:8px 10px; background:#fbfaf6;
+}
+.export-fields summary{
+  font-family:var(--sans); font-weight:700; font-size:.8rem; color:var(--ink);
+  cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;
+}
+.export-fields summary::-webkit-details-marker{ display:none; }
+.export-fields summary::before{ content:"▸"; color:var(--accent-dim); font-size:1.5rem; }
+.export-fields[open] summary::before{ content:"▾"; }
+.field-count{ font-family:var(--mono); font-size:.7rem; color:#9a9580; font-weight:500; }
+.ef-quick{ display:flex; gap:8px; margin:8px 0 6px; }
+.ef-quick-btn{
+  font-family:var(--mono); font-size:.68rem; font-weight:600;
+  border:1px solid var(--ink-line); background:transparent; color:var(--ink-soft);
+  padding:2px 8px; border-radius:20px; cursor:pointer;
+}
+.ef-quick-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.ef-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:5px 10px;
+  margin-bottom:8px;
+}
+.ef-item{
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:.72rem; color:#3c3826;
+  cursor:pointer; user-select:none;
+}
+.ef-item input{ accent-color:var(--accent); cursor:pointer; }
+.ef-extra{
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:.72rem; color:#3c3826;
+  border-top:1px dashed #e0dccb; padding-top:8px; cursor:pointer; user-select:none;
+}
+.ef-extra input{ accent-color:var(--accent); cursor:pointer; }
+
+.app-footer{
+  font-family:var(--mono); font-size:.72rem; color:#999999; text-align:center; padding:0;
+}
+
+#toastBox{
+  position:fixed; bottom:18px; right:18px; z-index:2000;
+  display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+}
+.mini-toast{
+  font-family:var(--sans); font-size:.84rem; font-weight:600;
+  background:var(--ink); color:#fff; border:1px solid var(--ink-line);
+  padding:10px 16px; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,.35);
+  opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s;
+}
+.mini-toast.show{ opacity:1; transform:translateY(0); }
+.mini-toast.error{ border-color:var(--bad); }
+.mini-toast.error::before{ content:"⚠ "; }
+.mini-toast.ok::before{ content:"✓ "; color:var(--good); }
+
+@media (max-width: 991px){
+  .viewer-panel{ max-height:60vh; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="container-fluid px-3 py-2">
+    <div class="d-flex align-items-center flex-wrap gap-3">
+      <div class="me-auto">
+        <div class="brand-title"><img src="https://cdn-icons-png.flaticon.com/128/15525/15525465.png" alt="logo" width="45" height="45"> PDF Coordinate Marker</div>
+        <div class="brand-sub">ปักหมุดพิกัด X,Y บน PDF หลายหน้า — ทำงานในเบราว์เซอร์ทั้งหมด</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="d-flex align-items-center gap-2 origin-control">
+          <span class="origin-label">ตั้งค่าพิกัด (0,0):</span>
+          <div class="btn-group" role="group" aria-label="origin">
+            <button type="button" class="btn btn-ghost btn-sm origin-btn active" data-origin="top-left">มุมบนซ้าย</button>
+            <button type="button" class="btn btn-ghost btn-sm origin-btn" data-origin="bottom-left">มุมล่างซ้าย</button>
+          </div>
+        </div>
+
+        <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden>
+        <button class="btn btn-accent" id="btnUploadPdf"><i class="bi bi-file-earmark-pdf"></i> Upload PDF</button>
+
+        <input type="file" id="jsonInput" accept="application/json,.json" hidden>
+        <button class="btn btn-ghost" id="btnImportJson"><i class="bi bi-upload"></i> Import JSON</button>
+
+        <button class="btn btn-ghost" id="btnCopyJson"><i class="bi bi-clipboard"></i> Copy JSON</button>
+        <button class="btn btn-ghost" id="btnExportJson"><i class="bi bi-download"></i> Export JSON</button>
+
+        <button class="btn btn-danger-ghost" id="btnClearAll"><i class="bi bi-trash3"></i> Clear Markers</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container-fluid px-3 py-3">
+  <div class="row g-3">
+
+    <!-- Viewer -->
+    <div class="col-lg-9">
+      <div class="viewer-panel" id="viewerPanel">
+        <div class="drop-hint" id="dropHint">
+          <div>
+            <i class="bi bi-cloud-arrow-up"></i>
+            <div class="hint-title">ลากไฟล์ PDF มาวางที่นี่</div>
+            <div class="hint-sub">หรือกดปุ่ม "Upload PDF" ด้านบน · รองรับ PDF หลายหน้า<br> ไฟล์ PDF ไม่มีการอัปโหลดขึ้นเซิร์ฟเวอร์</div>
+          </div>
+        </div>
+        <div class="zoom-toolbar-wrap d-none" id="zoomToolbarWrap">
+          <div class="zoom-toolbar">
+            <button type="button" class="zoom-btn" id="btnZoomOut" title="Zoom Out"><i class="bi bi-dash-lg"></i></button>
+            <span class="zoom-pct" id="zoomPct">100%</span>
+            <button type="button" class="zoom-btn" id="btnZoomIn" title="Zoom In"><i class="bi bi-plus-lg"></i></button>
+            <span class="zoom-divider"></span>
+            <button type="button" class="zoom-btn zoom-reset" id="btnZoomReset" title="กลับไปขนาดจริง 100%"><i class="bi bi-aspect-ratio"></i> มุมมองปกติ</button>
+          </div>
+        </div>
+        <div id="pageList"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+
+      <div class="side-card">
+        <div class="sc-header">
+          <h6><i class="bi bi-geo-alt-fill"></i> หมุดพิกัด (Markers)</h6>
+          <span class="badge-count" id="markerCount">0</span>
+        </div>
+        <div class="sc-body">
+          <div class="origin-caption" id="originCaption"></div>
+          <div id="emptyNote" class="empty-note">ยังไม่มีหมุด — คลิกบนหน้า PDF เพื่อปักหมุดแรก</div>
+          <div class="marker-list-scroll d-none" id="markerListWrap">
+            <table class="marker-table">
+              <thead>
+                <tr><th>#</th><th>หน้า</th><th>X (pt)</th><th>Y (pt)</th><th>ป้ายชื่อ</th><th></th></tr>
+              </thead>
+              <tbody id="markerTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="sc-header"><h6><i class="bi bi-rulers"></i> ขนาดอ้างอิง A4</h6></div>
+        <div class="sc-body a4-ref">
+          A4 มาตรฐาน: <b>595.28 × 841.89 pt</b><br>
+          เทียบเท่า: <b>210 × 297 mm</b><br>
+          เกณฑ์ตรวจสอบ: คลาดเคลื่อนได้ ±2pt (~0.7mm)
+          <div class="match-line" id="a4MatchNote">ยังไม่มีไฟล์ PDF</div>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="sc-header">
+          <h6><i class="bi bi-filetype-json"></i> JSON Output</h6>
+        </div>
+        <div class="sc-body">
+          <details class="export-fields" id="exportFieldsPanel">
+            <summary>ตั้งค่าฟิลด์ที่จะ Export <span class="field-count" id="fieldCount"></span></summary>
+            <div class="ef-quick">
+              <button type="button" class="ef-quick-btn" id="efSelectAll">เลือกทั้งหมด</button>
+              <button type="button" class="ef-quick-btn" id="efSelectNone">ไม่เลือกเลย</button>
+            </div>
+            <div class="ef-grid" id="efGrid"></div>
+            <label class="ef-extra">
+              <input type="checkbox" id="efIncludePages" checked> รวมข้อมูลขนาดหน้า/A4 (pages, a4Reference)
+            </label>
+          </details>
+          <div class="d-flex gap-2 mb-2 mt-2 json-actions">
+            <button class="btn btn-sm btn-outline-dark flex-fill" id="btnCopyJson2"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="btn btn-sm btn-dark flex-fill" id="btnExportJson2"><i class="bi bi-download"></i> Export</button>
+          </div>
+          <pre class="json-pre" id="jsonPreview">// อัปโหลด PDF แล้วคลิกบนหน้าเพื่อเริ่มปักหมุด</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="app-footer">
+  <div class="text-center">
+    <p id="foottext">GuruChian</p>
+  </div>
+</footer>
+
+<div id="toastBox"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const A4_WIDTH_PT = 595.2756;
+const A4_HEIGHT_PT = 841.8898;
+const TARGET_A4_WIDTH_PX = 700; // on-screen width an A4-wide page should get
+const MAX_DISPLAY_WIDTH_PX = 900; // safety cap so an oversized page can't blow up the layout
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 5;
+const ZOOM_STEP = 1.25; // multiplier per Zoom In / Zoom Out click
+
+// Marker fields a person can choose to include in JSON export, in fixed output order.
+// "def" sets which ones are checked by default.
+const FIELD_DEFS = [
+  { key: "order",          label: "ลำดับ (order)",            def: true  },
+  { key: "page",            label: "หน้า (page)",               def: true  },
+  { key: "label",           label: "ป้ายชื่อ (label)",          def: true  },
+  { key: "x",               label: "X (pt)",                    def: true  },
+  { key: "y",               label: "Y (pt) — ตามจุดอ้างอิง",    def: true  },
+  { key: "origin",          label: "จุดอ้างอิง (origin)",        def: false },
+  { key: "xPercent",        label: "X (%)",                     def: false },
+  { key: "yPercent",        label: "Y (%)",                     def: false },
+  { key: "xPt",             label: "X จากซ้าย (pt)",            def: false },
+  { key: "yPtFromTop",      label: "Y จากบน (pt)",              def: false },
+  { key: "yPtFromBottom",   label: "Y จากล่าง (pt)",            def: false },
+];
+
+const APP = {
+  pdfDoc: null,
+  fileName: "",
+  origin: "top-left", // "top-left" | "bottom-left" — where (0,0) is for displayed/exported Y
+  pxPerPt: TARGET_A4_WIDTH_PX / A4_WIDTH_PT, // px per pt at 100% — true relative size/orientation baseline
+  zoom: 1, // multiplier on top of pxPerPt; 1 = "มุมมองปกติ" (normal/true-size view)
+  exportFields: Object.fromEntries(FIELD_DEFS.map(f => [f.key, f.def])), // which marker fields go into JSON
+  includePagesMeta: true, // whether to include pages[]/a4Reference in JSON
+  pages: [],     // { pageNum, widthPt, heightPt, isA4, layerEl, canvasEl, canvasWrapEl, originBadgeEl }
+  markers: [],   // { id, page, xPercent, yPercent, label, dotEl }
+  nextId: 1,
+};
+
+/* ---------------- helpers ---------------- */
+function clamp(n, min, max){ return Math.min(max, Math.max(min, n)); }
+function round2(n){ return Math.round(n * 100) / 100; }
+function ptToMm(pt){ return pt / 72 * 25.4; }
+function isA4Size(w, h){
+  const tol = 2;
+  const portrait = Math.abs(w - A4_WIDTH_PT) < tol && Math.abs(h - A4_HEIGHT_PT) < tol;
+  const landscape = Math.abs(w - A4_HEIGHT_PT) < tol && Math.abs(h - A4_WIDTH_PT) < tol;
+  return portrait || landscape;
+}
+function pageInfoFor(pageNum){ return APP.pages.find(p => p.pageNum === pageNum); }
+
+function getOriginY(yPtTop, heightPt){
+  return APP.origin === "bottom-left" ? (heightPt - yPtTop) : yPtTop;
+}
+
+function setOrigin(mode){
+  APP.origin = mode;
+  document.querySelectorAll(".origin-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.origin === mode);
+  });
+  updateOriginBadges();
+  refreshAll();
+}
+
+function updateOriginBadges(){
+  APP.pages.forEach(p => {
+    if (!p.originBadgeEl) return;
+    p.originBadgeEl.classList.remove("top-left", "bottom-left");
+    p.originBadgeEl.classList.add(APP.origin);
+    const axisY = p.originBadgeEl.querySelector(".axis-y");
+    if (axisY) axisY.textContent = APP.origin === "bottom-left" ? "↑Y" : "↓Y";
+  });
+}
+
+function updateOriginCaption(){
+  const el = document.getElementById("originCaption");
+  if (!el) return;
+  const where = APP.origin === "bottom-left" ? "มุมล่างซ้าย" : "มุมบนซ้าย";
+  el.textContent = "(0,0) อยู่ที่" + where + "ของแต่ละหน้า — ค่า Y ด้านล่างวัดจากจุดนั้น";
+}
+
+function showToast(msg, isError){
+  const box = document.getElementById("toastBox");
+  const el = document.createElement("div");
+  el.className = "mini-toast " + (isError ? "error" : "ok");
+  el.textContent = msg;
+  box.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 250);
+  }, 2400);
+}
+
+/* ---------------- PDF loading & rendering ---------------- */
+async function loadPdfFile(file){
+  if (!file || !/\.pdf$/i.test(file.name)) {
+    showToast("กรุณาเลือกไฟล์ PDF เท่านั้น", true);
+    return;
+  }
+  resetState();
+  APP.fileName = file.name;
+
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    APP.pdfDoc = pdf;
+    document.getElementById("dropHint").classList.add("d-none");
+    document.getElementById("zoomToolbarWrap").classList.remove("d-none");
+
+    APP.pxPerPt = await computeSharedScale(pdf);
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      await renderPage(i);
+    }
+    refreshAll();
+    centerViewerHorizontally();
+    showToast(`โหลด PDF สำเร็จ (${pdf.numPages} หน้า)`);
+  } catch (err) {
+    console.error(err);
+    showToast("ไม่สามารถเปิดไฟล์ PDF นี้ได้", true);
+    document.getElementById("dropHint").classList.remove("d-none");
+    document.getElementById("zoomToolbarWrap").classList.add("d-none");
+  }
+}
+
+// Find the widest page in the document and base one shared px-per-pt ratio
+// on it (anchored to an A4-width baseline). Using the SAME ratio for every
+// page means each page renders at its true relative size and orientation
+// next to the others, instead of every page being stretched to one width.
+async function computeSharedScale(pdf){
+  let maxWidthPt = 0;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 1 });
+    if (vp.width > maxWidthPt) maxWidthPt = vp.width;
+  }
+  const baselineRatio = TARGET_A4_WIDTH_PX / A4_WIDTH_PT;
+  const cappedRatio = MAX_DISPLAY_WIDTH_PX / maxWidthPt;
+  return Math.min(baselineRatio, cappedRatio);
+}
+
+function resetState(){
+  APP.pdfDoc = null;
+  APP.fileName = "";
+  APP.pxPerPt = TARGET_A4_WIDTH_PX / A4_WIDTH_PT;
+  APP.zoom = 1;
+  APP.pages = [];
+  APP.markers = [];
+  APP.nextId = 1;
+  document.getElementById("pageList").innerHTML = "";
+  document.getElementById("dropHint").classList.remove("d-none");
+  document.getElementById("zoomToolbarWrap").classList.add("d-none");
+  updateZoomUI();
+  refreshAll();
+}
+
+// Build the static DOM for a page (label, canvas, marker layer, origin badge),
+// register it in APP.pages, then paint it at the current zoom level.
+async function renderPage(pageNum){
+  const page = await APP.pdfDoc.getPage(pageNum);
+  const native = page.getViewport({ scale: 1 });
+  const widthPt = native.width;
+  const heightPt = native.height;
+  const orientation = widthPt > heightPt ? "landscape" : "portrait";
+
+  const pageBlock = document.createElement("div");
+  pageBlock.className = "page-block";
+  pageBlock.innerHTML =
+    '<div class="page-label">' +
+      '<span class="page-num">หน้า ' + pageNum + '/' + APP.pdfDoc.numPages + '</span>' +
+      '<span class="page-size"></span>' +
+      '<span class="orient-badge">' + (orientation === "landscape" ? "⬓ แนวนอน" : "▯ แนวตั้ง") + '</span>' +
+      '<span class="a4-badge"></span>' +
+    '</div>' +
+    '<div class="canvas-wrap"></div>';
+  document.getElementById("pageList").appendChild(pageBlock);
+
+  const canvasWrap = pageBlock.querySelector(".canvas-wrap");
+  const canvas = document.createElement("canvas");
+  canvasWrap.appendChild(canvas);
+  const layer = document.createElement("div");
+  layer.className = "marker-layer";
+  canvasWrap.appendChild(layer);
+  const originBadge = document.createElement("div");
+  originBadge.className = "origin-badge " + APP.origin;
+  originBadge.innerHTML = '<span class="origin-coord">(0,0)</span><span class="origin-axis">X→ <span class="axis-y">' + (APP.origin === "bottom-left" ? "↑Y" : "↓Y") + '</span></span>';
+  canvasWrap.appendChild(originBadge);
+
+  const a4 = isA4Size(widthPt, heightPt);
+  pageBlock.querySelector(".page-size").textContent =
+    widthPt.toFixed(0) + "×" + heightPt.toFixed(0) + " pt (" +
+    ptToMm(widthPt).toFixed(0) + "×" + ptToMm(heightPt).toFixed(0) + " mm)";
+  const badge = pageBlock.querySelector(".a4-badge");
+  badge.textContent = a4 ? "A4 ✓" : "ไม่ใช่ A4";
+  badge.classList.add(a4 ? "badge-a4-yes" : "badge-a4-no");
+
+  const pageInfo = { pageNum, widthPt, heightPt, isA4: a4, layerEl: layer, canvasEl: canvas, canvasWrapEl: canvasWrap, originBadgeEl: originBadge };
+  APP.pages.push(pageInfo);
+
+  layer.addEventListener("click", (e) => {
+    if (e.target.closest(".marker-dot")) return;
+    const rect = layer.getBoundingClientRect();
+    const xPercent = clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100);
+    const yPercent = clamp(((e.clientY - rect.top) / rect.height) * 100, 0, 100);
+    createMarker(pageNum, xPercent, yPercent);
+  });
+
+  await paintPage(pageInfo);
+}
+
+// Render the PDF bitmap for one page at the current effective scale
+// (pxPerPt × zoom). The marker layer and its marker dots are left alone —
+// they're positioned with percentages, so they stay correct automatically
+// and never need to be rebuilt when zooming.
+async function paintPage(pageInfo){
+  const page = await APP.pdfDoc.getPage(pageInfo.pageNum);
+  const effectiveScale = APP.pxPerPt * APP.zoom;
+  const viewport = page.getViewport({ scale: effectiveScale });
+  const outputScale = window.devicePixelRatio || 1;
+
+  const canvas = pageInfo.canvasEl;
+  canvas.width = Math.floor(viewport.width * outputScale);
+  canvas.height = Math.floor(viewport.height * outputScale);
+  canvas.style.width = Math.floor(viewport.width) + "px";
+  canvas.style.height = Math.floor(viewport.height) + "px";
+  pageInfo.canvasWrapEl.style.width = Math.floor(viewport.width) + "px";
+
+  const ctx = canvas.getContext("2d");
+  const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+  await page.render({ canvasContext: ctx, viewport, transform }).promise;
+}
+
+async function repaintAllPages(){
+  for (const pageInfo of APP.pages) {
+    await paintPage(pageInfo);
+  }
+}
+
+/* ---------------- zoom ---------------- */
+async function setZoom(targetZoom){
+  if (!APP.pdfDoc) return;
+  const next = clamp(targetZoom, ZOOM_MIN, ZOOM_MAX);
+  if (Math.abs(next - APP.zoom) < 0.005) return;
+  APP.zoom = next;
+  updateZoomUI();
+  await repaintAllPages();
+  centerViewerHorizontally();
+}
+function zoomIn(){ setZoom(APP.zoom * ZOOM_STEP).catch(console.error); }
+function zoomOut(){ setZoom(APP.zoom / ZOOM_STEP).catch(console.error); }
+function zoomReset(){ setZoom(1).catch(console.error); }
+
+// If zooming made a page wider than the viewer frame, auto-scroll
+// horizontally so the page sits centered instead of stuck against one edge.
+function centerViewerHorizontally(){
+  const panel = document.getElementById("viewerPanel");
+  if (!panel) return;
+  const overflowX = panel.scrollWidth - panel.clientWidth;
+  const targetLeft = overflowX > 0 ? overflowX / 2 : 0;
+  panel.scrollTo({ left: targetLeft, behavior: "smooth" });
+}
+
+function updateZoomUI(){
+  const pct = document.getElementById("zoomPct");
+  if (pct) pct.textContent = Math.round(APP.zoom * 100) + "%";
+  const inBtn = document.getElementById("btnZoomIn");
+  const outBtn = document.getElementById("btnZoomOut");
+  if (inBtn) inBtn.disabled = APP.zoom >= ZOOM_MAX - 0.005;
+  if (outBtn) outBtn.disabled = APP.zoom <= ZOOM_MIN + 0.005;
+}
+
+/* ---------------- markers ---------------- */
+function createMarker(pageNum, xPercent, yPercent, label){
+  const pInfo = pageInfoFor(pageNum);
+  if (!pInfo) return null;
+
+  const marker = {
+    id: "m" + (APP.nextId++),
+    page: pageNum,
+    xPercent, yPercent,
+    label: label || ("หมุด " + (APP.markers.length + 1)),
+    dotEl: null,
+  };
+  APP.markers.push(marker);
+  mountMarkerDot(marker, pInfo);
+  refreshAll();
+  return marker;
+}
+
+function mountMarkerDot(marker, pInfo){
+  const dot = document.createElement("div");
+  dot.className = "marker-dot";
+  dot.innerHTML = '<span class="dot-num"></span>';
+  dot.style.left = marker.xPercent + "%";
+  dot.style.top = marker.yPercent + "%";
+  dot.title = marker.label;
+  pInfo.layerEl.appendChild(dot);
+  marker.dotEl = dot;
+
+  dot.addEventListener("dragstart", (e) => e.preventDefault());
+  dot.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dot.setPointerCapture(e.pointerId);
+    dot.classList.add("dragging");
+
+    const onMove = (ev) => {
+      const rect = pInfo.layerEl.getBoundingClientRect();
+      const xPercent = clamp(((ev.clientX - rect.left) / rect.width) * 100, 0, 100);
+      const yPercent = clamp(((ev.clientY - rect.top) / rect.height) * 100, 0, 100);
+      marker.xPercent = xPercent;
+      marker.yPercent = yPercent;
+      dot.style.left = xPercent + "%";
+      dot.style.top = yPercent + "%";
+    };
+    const onUp = () => {
+      dot.classList.remove("dragging");
+      dot.removeEventListener("pointermove", onMove);
+      dot.removeEventListener("pointerup", onUp);
+      refreshAll();
+    };
+    dot.addEventListener("pointermove", onMove);
+    dot.addEventListener("pointerup", onUp);
+  });
+}
+
+function deleteMarker(id){
+  const idx = APP.markers.findIndex(m => m.id === id);
+  if (idx === -1) return;
+  const [removed] = APP.markers.splice(idx, 1);
+  if (removed.dotEl) removed.dotEl.remove();
+  refreshAll();
+}
+
+function clearAllMarkers(){
+  if (APP.markers.length === 0) return;
+  if (!confirm("ลบหมุดทั้งหมด " + APP.markers.length + " จุด ใช่หรือไม่?")) return;
+  APP.markers.forEach(m => { if (m.dotEl) m.dotEl.remove(); });
+  APP.markers = [];
+  refreshAll();
+}
+
+/* ---------------- sidebar / JSON sync ---------------- */
+function refreshAll(){
+  renderMarkerTable();
+  renderJsonPreview();
+  renderA4MatchNote();
+  updateOriginCaption();
+  document.getElementById("markerCount").textContent = APP.markers.length;
+}
+
+function renderMarkerTable(){
+  const tbody = document.getElementById("markerTbody");
+  const wrap = document.getElementById("markerListWrap");
+  const empty = document.getElementById("emptyNote");
+
+  if (APP.markers.length === 0) {
+    wrap.classList.add("d-none");
+    empty.classList.remove("d-none");
+    tbody.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("d-none");
+  empty.classList.add("d-none");
+
+  tbody.innerHTML = "";
+  APP.markers.forEach((m, i) => {
+    const pInfo = pageInfoFor(m.page);
+    const xPt = m.xPercent / 100 * pInfo.widthPt;
+    const yPtTop = m.yPercent / 100 * pInfo.heightPt;
+    const yPt = getOriginY(yPtTop, pInfo.heightPt);
+
+    if (m.dotEl) m.dotEl.querySelector(".dot-num").textContent = i + 1;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + m.page + '</td>' +
+      '<td>' + xPt.toFixed(1) + '</td>' +
+      '<td>' + yPt.toFixed(1) + '</td>' +
+      '<td><input class="lbl-input" type="text" value="' + escapeAttr(m.label) + '"></td>' +
+      '<td><button class="del-btn" title="ลบหมุดนี้"><i class="bi bi-x-lg"></i></button></td>';
+
+    tr.querySelector(".lbl-input").addEventListener("input", (e) => {
+      m.label = e.target.value;
+      if (m.dotEl) m.dotEl.title = m.label;
+      renderJsonPreview();
+    });
+    tr.querySelector(".del-btn").addEventListener("click", () => deleteMarker(m.id));
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderA4MatchNote(){
+  const note = document.getElementById("a4MatchNote");
+  if (APP.pages.length === 0) {
+    note.textContent = "ยังไม่มีไฟล์ PDF";
+    return;
+  }
+  const matchCount = APP.pages.filter(p => p.isA4).length;
+  note.textContent = "ไฟล์: " + APP.fileName + " · หน้าที่ตรงกับ A4: " + matchCount + "/" + APP.pages.length;
+}
+
+function escapeAttr(str){
+  return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/* ---------------- export field selection UI ---------------- */
+function hasAnyFieldSelected(){
+  return FIELD_DEFS.some(f => APP.exportFields[f.key]);
+}
+
+function updateFieldCount(){
+  const n = FIELD_DEFS.filter(f => APP.exportFields[f.key]).length;
+  const el = document.getElementById("fieldCount");
+  if (el) el.textContent = "(" + n + "/" + FIELD_DEFS.length + ")";
+}
+
+function buildExportFieldsUI(){
+  const grid = document.getElementById("efGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  FIELD_DEFS.forEach(f => {
+    const label = document.createElement("label");
+    label.className = "ef-item";
+    const checked = APP.exportFields[f.key] ? "checked" : "";
+    label.innerHTML = '<input type="checkbox" data-field="' + f.key + '" ' + checked + '> ' + f.label;
+    label.querySelector("input").addEventListener("change", (e) => {
+      APP.exportFields[f.key] = e.target.checked;
+      updateFieldCount();
+      renderJsonPreview();
+    });
+    grid.appendChild(label);
+  });
+  updateFieldCount();
+}
+
+/* ---------------- JSON build / copy / export / import ---------------- */
+function buildExportData(){
+  const data = {
+    fileName: APP.fileName,
+    pageCount: APP.pages.length,
+    exportedAt: new Date().toISOString(),
+    originMode: APP.origin,
+    originNote: "(0,0) อยู่ที่" + (APP.origin === "bottom-left" ? "มุมล่างซ้าย" : "มุมบนซ้าย") + "ของแต่ละหน้า — ดูฟิลด์ y (ตามมุมที่เลือก), yPtFromTop, yPtFromBottom",
+  };
+
+  if (APP.includePagesMeta) {
+    data.a4Reference = { widthPt: round2(A4_WIDTH_PT), heightPt: round2(A4_HEIGHT_PT), widthMm: 210, heightMm: 297 };
+    data.pages = APP.pages.map(p => ({
+      page: p.pageNum,
+      widthPt: round2(p.widthPt),
+      heightPt: round2(p.heightPt),
+      widthMm: round2(ptToMm(p.widthPt)),
+      heightMm: round2(ptToMm(p.heightPt)),
+      isA4: p.isA4
+    }));
+  }
+
+  data.markers = APP.markers.map((m, i) => {
+    const p = pageInfoFor(m.page);
+    const xPt = m.xPercent / 100 * p.widthPt;
+    const yPtTop = m.yPercent / 100 * p.heightPt;
+    const yPtBottom = p.heightPt - yPtTop;
+    const full = {
+      order: i + 1,
+      page: m.page,
+      label: m.label,
+      origin: APP.origin,
+      x: round2(xPt),
+      y: round2(getOriginY(yPtTop, p.heightPt)),
+      xPercent: round2(m.xPercent),
+      yPercent: round2(m.yPercent),
+      xPt: round2(xPt),
+      yPtFromTop: round2(yPtTop),
+      yPtFromBottom: round2(yPtBottom)
+    };
+    const out = {};
+    FIELD_DEFS.forEach(f => {
+      if (APP.exportFields[f.key]) out[f.key] = full[f.key];
+    });
+    return out;
+  });
+
+  return data;
+}
+
+function renderJsonPreview(){
+  document.getElementById("jsonPreview").textContent = JSON.stringify(buildExportData(), null, 2);
+}
+
+async function copyJson(){
+  if (!hasAnyFieldSelected()) { showToast("กรุณาเลือกฟิลด์ที่จะ Export อย่างน้อย 1 รายการ", true); return; }
+  const text = JSON.stringify(buildExportData(), null, 2);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("คัดลอก JSON แล้ว");
+  } catch (err) {
+    showToast("คัดลอกไม่สำเร็จ — ลองเลือกข้อความใน JSON Output แล้ว Ctrl+C", true);
+  }
+}
+
+function exportJson(){
+  if (!APP.pdfDoc) { showToast("กรุณาอัปโหลด PDF ก่อน", true); return; }
+  if (!hasAnyFieldSelected()) { showToast("กรุณาเลือกฟิลด์ที่จะ Export อย่างน้อย 1 รายการ", true); return; }
+  const data = buildExportData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (APP.fileName ? APP.fileName.replace(/\.pdf$/i, "") : "markers") + "-markers.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast("ส่งออก JSON แล้ว");
+}
+
+function importJsonFile(file){
+  if (!APP.pdfDoc) {
+    showToast("กรุณาอัปโหลด PDF ก่อน Import JSON", true);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let data;
+    try {
+      data = JSON.parse(e.target.result);
+    } catch (err) {
+      showToast("ไฟล์ JSON ไม่ถูกต้อง", true);
+      return;
+    }
+    const markers = Array.isArray(data.markers) ? data.markers : [];
+    if (data.originMode === "top-left" || data.originMode === "bottom-left") {
+      setOrigin(data.originMode);
+    }
+    let added = 0;
+    markers.forEach((m) => {
+      const pInfo = pageInfoFor(m.page) || APP.pages[0];
+      if (!pInfo) return;
+
+      const markerOrigin = m.origin || data.originMode || "top-left";
+      let xPercent = m.xPercent;
+      let yPercent = m.yPercent;
+      if (xPercent == null && m.xPt != null) xPercent = m.xPt / pInfo.widthPt * 100;
+      if (xPercent == null && m.x != null) xPercent = m.x / pInfo.widthPt * 100;
+      if (yPercent == null) {
+        if (m.yPtFromTop != null) yPercent = m.yPtFromTop / pInfo.heightPt * 100;
+        else if (m.yPtFromBottom != null) yPercent = (pInfo.heightPt - m.yPtFromBottom) / pInfo.heightPt * 100;
+        else if (m.y != null) {
+          yPercent = markerOrigin === "bottom-left"
+            ? (pInfo.heightPt - m.y) / pInfo.heightPt * 100
+            : m.y / pInfo.heightPt * 100;
+        }
+      }
+      if (xPercent == null || yPercent == null) return;
+
+      createMarker(pInfo.pageNum, clamp(xPercent, 0, 100), clamp(yPercent, 0, 100), m.label);
+      added++;
+    });
+    showToast("นำเข้า " + added + " หมุดแล้ว");
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- wiring ---------------- */
+document.querySelectorAll(".origin-btn").forEach(btn => {
+  btn.addEventListener("click", () => setOrigin(btn.dataset.origin));
+});
+
+document.getElementById("btnUploadPdf").addEventListener("click", () => document.getElementById("pdfInput").click());
+document.getElementById("pdfInput").addEventListener("change", (e) => {
+  if (e.target.files[0]) loadPdfFile(e.target.files[0]);
+  e.target.value = "";
+});
+
+document.getElementById("btnImportJson").addEventListener("click", () => document.getElementById("jsonInput").click());
+document.getElementById("jsonInput").addEventListener("change", (e) => {
+  if (e.target.files[0]) importJsonFile(e.target.files[0]);
+  e.target.value = "";
+});
+
+document.getElementById("btnCopyJson").addEventListener("click", copyJson);
+document.getElementById("btnCopyJson2").addEventListener("click", copyJson);
+document.getElementById("btnExportJson").addEventListener("click", exportJson);
+document.getElementById("btnExportJson2").addEventListener("click", exportJson);
+document.getElementById("btnClearAll").addEventListener("click", clearAllMarkers);
+
+document.getElementById("efSelectAll").addEventListener("click", () => {
+  FIELD_DEFS.forEach(f => APP.exportFields[f.key] = true);
+  document.querySelectorAll("#efGrid input[type=checkbox]").forEach(cb => cb.checked = true);
+  updateFieldCount();
+  renderJsonPreview();
+});
+document.getElementById("efSelectNone").addEventListener("click", () => {
+  FIELD_DEFS.forEach(f => APP.exportFields[f.key] = false);
+  document.querySelectorAll("#efGrid input[type=checkbox]").forEach(cb => cb.checked = false);
+  updateFieldCount();
+  renderJsonPreview();
+});
+document.getElementById("efIncludePages").addEventListener("change", (e) => {
+  APP.includePagesMeta = e.target.checked;
+  renderJsonPreview();
+});
+document.getElementById("btnZoomIn").addEventListener("click", zoomIn);
+document.getElementById("btnZoomOut").addEventListener("click", zoomOut);
+document.getElementById("btnZoomReset").addEventListener("click", zoomReset);
+
+buildExportFieldsUI();
+
+const viewerPanel = document.getElementById("viewerPanel");
+["dragenter", "dragover"].forEach(evt => {
+  viewerPanel.addEventListener(evt, (e) => {
+    e.preventDefault();
+    viewerPanel.classList.add("drag-active");
+  });
+});
+["dragleave", "drop"].forEach(evt => {
+  viewerPanel.addEventListener(evt, (e) => {
+    e.preventDefault();
+    viewerPanel.classList.remove("drag-active");
+  });
+});
+viewerPanel.addEventListener("drop", (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) loadPdfFile(file);
+});
+
+function conf(){
+  const ny = new Date().getFullYear(); 
+  const crd = 2025; 
+  if (ny > crd) { document.getElementById('foottext').innerHTML = 'Copyright and CC BY-NC-ND  by <a href="https://guruchian.blogspot.com" target="_blank">GuruChian</a> ' + crd + ' - ' + ny + '<br>ไฟล์ PDF และหมุดทั้งหมดประมวลผลในเบราว์เซอร์ของคุณ ไม่มีการอัปโหลดขึ้นเซิร์ฟเวอร์</p>'; } 
+  else { document.getElementById('foottext').innerHTML = 'Copyright and CC BY-NC-ND by <a href="https://guruchian.blogspot.com" target="_blank">GuruChian</a> ' + crd + '<br>ไฟล์ PDF และหมุดทั้งหมดประมวลผลในเบราว์เซอร์ของคุณ ไม่มีการอัปโหลดขึ้นเซิร์ฟเวอร์</p>'; } 
+}
+
+conf()
+
+refreshAll();
+
+</script>
+</body>
+</html>
